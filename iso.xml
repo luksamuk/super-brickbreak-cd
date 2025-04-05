@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<iso_project>
+  <track type="data">
+    <identifiers
+	system		= "PLAYSTATION"
+	application	= "PLAYSTATION"
+	volume		= "SCUS-00001"
+	volume_set	= "SCUS-00001"
+	publisher	= "luksamuk"
+	data_preparer	= "PSN00BSDK ${PSN00BSDK_VERSION}"
+	copyright	= "COPYLEFT" />
+    <directory_tree>
+      <file name="SYSTEM.CNF" type="data" source="${PROJECT_SOURCE_DIR}/system.cnf" />
+      <file name="PSXGAME.EXE" type="data" source="psxgame.exe" />
+
+      <dummy sectors="1024"/>
+    </directory_tree>
+  </track>
+</iso_project>
+

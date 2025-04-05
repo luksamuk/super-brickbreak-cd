@@ -1,0 +1,13 @@
+LCNSFILE/
+build/
+*~
+*#*#
+/pcsx.json
+/*.frag
+/*.vert
+/*.lua
+/*.mcd
+/*.chd
+*.tiled-session
+/.pcsx
+temp/
