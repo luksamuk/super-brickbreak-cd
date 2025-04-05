@@ -39,6 +39,7 @@ screen_change(ScreenIndex src)
         screen_unload();
     current_screen = src;
     screen_load();
+    screen_update();
 }
 
 void
