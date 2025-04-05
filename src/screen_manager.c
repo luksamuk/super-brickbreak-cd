@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "screen/mainmenu.h"
+#include "screen/gameplay.h"
 
 
 // 64k of RAM reserved for screen storage
@@ -45,6 +46,7 @@ screen_load()
 {
     switch(current_screen) {
     case SCREEN_MAINMENU: screen_mainmenu_load(); break;
+    case SCREEN_GAMEPLAY: screen_gameplay_load(); break;
     default: break;
     }
 }
@@ -54,6 +56,7 @@ screen_unload()
 {
     switch(current_screen) {
     case SCREEN_MAINMENU: screen_mainmenu_unload(screen_data); break;
+    case SCREEN_GAMEPLAY: screen_gameplay_unload(screen_data); break;
     default: break;
     }
 }
@@ -63,6 +66,7 @@ screen_update()
 {
     switch(current_screen) {
     case SCREEN_MAINMENU: screen_mainmenu_update(screen_data); break;
+    case SCREEN_GAMEPLAY: screen_gameplay_update(screen_data); break;
     default: break;
     }
 }
@@ -72,6 +76,7 @@ screen_draw()
 {
     switch(current_screen) {
     case SCREEN_MAINMENU: screen_mainmenu_draw(screen_data); break;
+    case SCREEN_GAMEPLAY: screen_gameplay_draw(screen_data); break;
     default: break;
     }
 }

@@ -5,6 +5,7 @@
 
 typedef enum {
     SCREEN_MAINMENU,
+    SCREEN_GAMEPLAY,
 } ScreenIndex;
 
 void screen_change(ScreenIndex src);
