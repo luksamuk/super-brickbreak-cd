@@ -4,6 +4,7 @@
 #include "input.h"
 #include "util.h"
 #include "timer.h"
+#include "cdda.h"
 
 #include "screen_manager.h"
 #include "screen/mainmenu.h"
@@ -33,6 +34,8 @@ screen_mainmenu_load()
         if(len > max_size) max_size = len;
     }
     data->menu_x = (SCREEN_XRES - (max_size << 3)) >> 1;
+
+    cdda_play_track(1);
 }
 
 void
@@ -40,6 +43,7 @@ screen_mainmenu_unload(void *d)
 {
     mainmenu_data *data = (mainmenu_data *)d;
     screen_free();
+    cdda_stop();
 }
 
 void

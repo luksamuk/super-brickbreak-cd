@@ -12,11 +12,13 @@
     <directory_tree>
       <file name="SYSTEM.CNF" type="data" source="${PROJECT_SOURCE_DIR}/system.cnf" />
       <file name="PSXGAME.EXE" type="data" source="psxgame.exe" />
-
       <file name="BALL.TIM" type="data" source="${PROJECT_SOURCE_DIR}/assets/BALL.TIM" />
 
       <dummy sectors="1024"/>
+
+      <file name="audio1.da" trackid="02" type="da" />
     </directory_tree>
   </track>
+  <track type="audio" trackid="02" source="${PROJECT_SOURCE_DIR}/assets/main-theme.mp3" />
 </iso_project>
 

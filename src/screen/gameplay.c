@@ -4,6 +4,7 @@
 #include "timer.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include "cdda.h"
 
 #include "screen_manager.h"
 #include "screen/gameplay.h"
@@ -66,6 +67,8 @@ screen_gameplay_load()
     }
 
     data->player_lives = 5;
+
+    cdda_play_track(1);
 }
 
 void
@@ -73,6 +76,7 @@ screen_gameplay_unload(void *d)
 {
     gameplay_data *data = (gameplay_data *)d;
     screen_free();
+    cdda_stop();
 }
 
 void
