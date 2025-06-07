@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "cdda.h"
+#include "strings.h"
 
 #include "screen_manager.h"
 #include "screen/gameplay.h"
@@ -26,6 +27,21 @@
 #define PADDLE_REBOUND_RANGE_ANGLE  0x555 // approx. 120°
 // PADDLE_REBOUND_MIN_ANGLE + (P * PADDLE_REBOUND_RANGE_ANGLE)
 
+#define BLOCK_WIDTH   32
+#define BLOCK_HEIGHT  16
+
+#define MAX_BLOCKS_WIDTH  10
+#define MAX_BLOCKS_HEIGHT  8
+#define MAX_BLOCKS (MAX_BLOCKS_WIDTH * MAX_BLOCKS_HEIGHT)
+
+typedef struct {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t state;
+} block_state;
+
+
 typedef struct {
     int32_t ball_pos[2];    // fixpoint
     int32_t ball_vel[2];    // fixpoint
@@ -33,6 +49,8 @@ typedef struct {
     int32_t ball_init_angle; // fixpoint
     uint8_t ball_state;
     uint8_t player_lives;
+
+    block_state blocks[MAX_BLOCKS];
 } gameplay_data;
 
 
@@ -55,6 +73,15 @@ screen_gameplay_load()
     gameplay_data *data = screen_alloc(sizeof(gameplay_data));
     data->paddle_pos[0] = CENTERX - (PADDLE_WIDTH >> 1);
     data->paddle_pos[1] = SCREEN_YRES - 30 - PADDLE_HEIGHT;
+
+    // Prepare board
+    //bzero(data->blocks, sizeof(uint8_t) * MAX_BLOCKS);
+    for(uint16_t i = 0; i < MAX_BLOCKS; i++) {
+        data->blocks[i].state = rand() % 2;
+        data->blocks[i].r = 0x80 + (rand() % 0x80);
+        data->blocks[i].g = 0x80 + (rand() % 0x80);
+        data->blocks[i].b = 0x80 + (rand() % 0x80);
+    }
 
     _respawn_ball(data);
     
@@ -203,6 +230,68 @@ _draw_ball(int16_t ball_x, int16_t ball_y)
     increment_prim(sizeof(POLY_FT4));
 }
 
+#define darken(v, qtd) \
+    ((v < qtd) ? 1 : (v - qtd))
+
+void
+_draw_block(block_state *s, int16_t vx, int16_t vy)
+{
+    POLY_F3 *poly;
+
+    int16_t m_vx = vx + (BLOCK_WIDTH >> 1);
+    int16_t m_vy = vy + (BLOCK_HEIGHT >> 1);
+
+    // Mid color
+    uint8_t
+        mr = darken(s->r, 0x55),
+        mg = darken(s->g, 0x55),
+        mb = darken(s->b, 0x55),
+
+        dr = darken(mr, 0x2a),
+        dg = darken(mg, 0x2a),
+        db = darken(mb, 0x2a);
+
+    poly = (POLY_F3 *)get_next_prim();
+    increment_prim(sizeof(POLY_F3));
+    setPolyF3(poly);
+    setRGB0(poly, s->r, s->g, s->b);
+    setXY3(poly,
+           vx, vy,
+           vx + BLOCK_WIDTH, vy,
+           m_vx, m_vy);
+    sort_prim(poly, 2);
+
+    poly = (POLY_F3 *)get_next_prim();
+    increment_prim(sizeof(POLY_F3));
+    setPolyF3(poly);
+    setRGB0(poly, mr, mg, mb);
+    setXY3(poly,
+           vx, vy,
+           m_vx, m_vy,
+           vx, vy + BLOCK_HEIGHT);
+    sort_prim(poly, 2);
+
+    poly = (POLY_F3 *)get_next_prim();
+    increment_prim(sizeof(POLY_F3));
+    setPolyF3(poly);
+    setRGB0(poly, mr, mg, mb);
+    setXY3(poly,
+           vx + BLOCK_WIDTH, vy,
+           m_vx, m_vy,
+           vx + BLOCK_WIDTH, vy + BLOCK_HEIGHT);
+    sort_prim(poly, 2);
+
+    poly = (POLY_F3 *)get_next_prim();
+    increment_prim(sizeof(POLY_F3));
+    setPolyF3(poly);
+    setRGB0(poly, dr, dg, db);
+    setXY3(poly,
+           m_vx, m_vy,
+           vx + BLOCK_WIDTH, vy + BLOCK_HEIGHT,
+           vx, vy + BLOCK_HEIGHT);
+    sort_prim(poly, 2);
+}
+
 void
 screen_gameplay_draw(void *d)
 {
@@ -219,6 +308,14 @@ screen_gameplay_draw(void *d)
 
     // Draw ball
     _draw_ball(data->ball_pos[0] >> 12, data->ball_pos[1] >> 12);
+
+    for(int16_t i = 0; i < MAX_BLOCKS; i++) {
+        block_state *s = &data->blocks[i];
+        if(!s->state) continue;
+        int16_t y = i / MAX_BLOCKS_WIDTH;
+        int16_t x = i - (y * MAX_BLOCKS_WIDTH);
+        _draw_block(s, x << 5, y << 4);
+    }
 
     draw_text(10, SCREEN_YRES - 20, 0, "Level: Test");
 
