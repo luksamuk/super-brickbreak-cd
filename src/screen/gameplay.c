@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include "cdda.h"
 #include "strings.h"
+#include "collision.h"
 
 #include "screen_manager.h"
 #include "screen/gameplay.h"
@@ -201,6 +202,43 @@ screen_gameplay_update(void *d)
                 data->ball_vel[1] = -(((BALL_SPEED << 12) * rsin(rebound_angle)) >> 12);
             }
         }
+
+        // Block collision
+        RECT box = {
+            .x = 0,
+            .y = 0,
+            .w = BLOCK_WIDTH,
+            .h = BLOCK_HEIGHT
+        };
+        vec2 ballpos = {
+            .vx = data->ball_pos[0] >> 12,
+            .vy = data->ball_pos[1] >> 12,
+        };
+        for(int16_t i = 0; i < MAX_BLOCKS; i++) {
+            block_state *s = &data->blocks[i];
+            if(!s->state) continue;
+            int16_t y = i / MAX_BLOCKS_WIDTH;
+            int16_t x = i - (y * MAX_BLOCKS_WIDTH);
+            box.x = x << 5;
+            box.y = y << 4;
+
+            vec2 r_mov, r_pos;
+            r_mov = r_pos = (vec2){ .vx = 0, .vy = 0 };
+            if(collision_ball_box(&ballpos, BALL_RADIUS, &box,
+                                  &r_mov, &r_pos)) {
+                /* data->ball_pos[0] = ((int32_t)r_pos.vx) << 12; */
+                /* data->ball_pos[1] = ((int32_t)r_pos.vy) << 12; */
+                s->state = 0;
+
+                if((r_mov.vx != 0) && (SIGNUM(data->ball_vel[0]) != SIGNUM(r_mov.vx))) {
+                    data->ball_vel[0] *= -1;
+                }
+
+                if((r_mov.vy != 0) && (SIGNUM(data->ball_vel[1]) != SIGNUM(r_mov.vy))) {
+                    data->ball_vel[1] *= -1;
+                }
+            }
+        }
     }
 }
 
@@ -326,3 +364,4 @@ screen_gameplay_draw(void *d)
         lives_x -= (BALL_RADIUS << 1) + 2;
     }
 }
+
