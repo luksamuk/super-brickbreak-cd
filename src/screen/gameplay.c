@@ -28,12 +28,26 @@
 #define PADDLE_REBOUND_RANGE_ANGLE  0x555 // approx. 120°
 // PADDLE_REBOUND_MIN_ANGLE + (P * PADDLE_REBOUND_RANGE_ANGLE)
 
-#define BLOCK_WIDTH   32
-#define BLOCK_HEIGHT  16
+#define BLOCK_WIDTH   16
+#define BLOCK_HEIGHT  8
 
-#define MAX_BLOCKS_WIDTH  10
-#define MAX_BLOCKS_HEIGHT  8
+#define MAX_BLOCKS_WIDTH  20
+#define MAX_BLOCKS_HEIGHT 10
 #define MAX_BLOCKS (MAX_BLOCKS_WIDTH * MAX_BLOCKS_HEIGHT)
+
+uint8_t level_layout[MAX_BLOCKS] = {
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,
+    0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,
+    1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,
+    1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,
+    1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,
+    0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,
+    0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,
+    1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1
+};
+
 
 typedef struct {
     uint8_t r;
@@ -72,7 +86,8 @@ _reset_level(block_state *blocks)
 {
     bzero(blocks, sizeof(uint8_t) * MAX_BLOCKS);
     for(uint16_t i = 0; i < MAX_BLOCKS; i++) {
-        blocks[i].state = rand() % 2;
+        /* blocks[i].state = rand() % 2; */
+        blocks[i].state = level_layout[i];
         blocks[i].r = 0x80 + (rand() % 0x80);
         blocks[i].g = 0x80 + (rand() % 0x80);
         blocks[i].b = 0x80 + (rand() % 0x80);
@@ -225,8 +240,8 @@ screen_gameplay_update(void *d)
 
             int16_t y = i / MAX_BLOCKS_WIDTH;
             int16_t x = i - (y * MAX_BLOCKS_WIDTH);
-            box.x = x << 5;
-            box.y = y << 4;
+            box.x = x << 4;
+            box.y = y << 3;
 
             vec2 r_mov, r_pos;
             r_mov = r_pos = (vec2){ .vx = 0, .vy = 0 };
@@ -245,9 +260,6 @@ screen_gameplay_update(void *d)
                     data->ball_vel[1] *= -1;
                     data->ball_pos[1] = r_pos.vy << 12;
                 }
-
-                // Process only a single collision per frame
-                break;
             }
         }
     }
@@ -363,7 +375,7 @@ screen_gameplay_draw(void *d)
         if(!s->state) continue;
         int16_t y = i / MAX_BLOCKS_WIDTH;
         int16_t x = i - (y * MAX_BLOCKS_WIDTH);
-        _draw_block(s, x << 5, y << 4);
+        _draw_block(s, x << 4, y << 3);
     }
 
     draw_text(10, SCREEN_YRES - 20, 0, "Level: Test");
