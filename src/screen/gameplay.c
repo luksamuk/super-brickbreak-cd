@@ -68,6 +68,18 @@ _respawn_ball(gameplay_data *data)
 }
 
 void
+_reset_level(block_state *blocks)
+{
+    bzero(blocks, sizeof(uint8_t) * MAX_BLOCKS);
+    for(uint16_t i = 0; i < MAX_BLOCKS; i++) {
+        blocks[i].state = rand() % 2;
+        blocks[i].r = 0x80 + (rand() % 0x80);
+        blocks[i].g = 0x80 + (rand() % 0x80);
+        blocks[i].b = 0x80 + (rand() % 0x80);
+    }
+}
+
+void
 screen_gameplay_load()
 {
     srand(get_global_frames());
@@ -75,15 +87,7 @@ screen_gameplay_load()
     data->paddle_pos[0] = CENTERX - (PADDLE_WIDTH >> 1);
     data->paddle_pos[1] = SCREEN_YRES - 30 - PADDLE_HEIGHT;
 
-    // Prepare board
-    //bzero(data->blocks, sizeof(uint8_t) * MAX_BLOCKS);
-    for(uint16_t i = 0; i < MAX_BLOCKS; i++) {
-        data->blocks[i].state = rand() % 2;
-        data->blocks[i].r = 0x80 + (rand() % 0x80);
-        data->blocks[i].g = 0x80 + (rand() % 0x80);
-        data->blocks[i].b = 0x80 + (rand() % 0x80);
-    }
-
+    _reset_level(data->blocks);
     _respawn_ball(data);
     
     uint32_t file_length;
@@ -145,6 +149,7 @@ screen_gameplay_update(void *d)
         // Debug. TODO: remove
         if(pad_pressed(PAD_SELECT)) {
             _respawn_ball(data);
+            _reset_level(data->blocks);
         }
 
         // Boundary collision
@@ -216,7 +221,8 @@ screen_gameplay_update(void *d)
         };
         for(int16_t i = 0; i < MAX_BLOCKS; i++) {
             block_state *s = &data->blocks[i];
-            if(!s->state) continue;
+            if(s->state == 0) continue;
+
             int16_t y = i / MAX_BLOCKS_WIDTH;
             int16_t x = i - (y * MAX_BLOCKS_WIDTH);
             box.x = x << 5;
@@ -226,17 +232,22 @@ screen_gameplay_update(void *d)
             r_mov = r_pos = (vec2){ .vx = 0, .vy = 0 };
             if(collision_ball_box(&ballpos, BALL_RADIUS, &box,
                                   &r_mov, &r_pos)) {
-                /* data->ball_pos[0] = ((int32_t)r_pos.vx) << 12; */
-                /* data->ball_pos[1] = ((int32_t)r_pos.vy) << 12; */
                 s->state = 0;
 
+                // Horizontal collision
                 if((r_mov.vx != 0) && (SIGNUM(data->ball_vel[0]) != SIGNUM(r_mov.vx))) {
                     data->ball_vel[0] *= -1;
+                    data->ball_pos[0] = r_pos.vx << 12;
                 }
 
+                // Vertical collision
                 if((r_mov.vy != 0) && (SIGNUM(data->ball_vel[1]) != SIGNUM(r_mov.vy))) {
                     data->ball_vel[1] *= -1;
+                    data->ball_pos[1] = r_pos.vy << 12;
                 }
+
+                // Process only a single collision per frame
+                break;
             }
         }
     }

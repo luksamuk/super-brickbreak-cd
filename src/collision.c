@@ -18,7 +18,7 @@ ptdiff0(vec2 *a0, vec2 *b0)
     };
 }
 
-int16_t
+int32_t
 sqdist0(vec2 *a0, vec2 *b0, vec2 *r_delta)
 {
     vec2 dpt = ptdiff0(a0, b0);
@@ -27,10 +27,10 @@ sqdist0(vec2 *a0, vec2 *b0, vec2 *r_delta)
 }
 
 uint8_t
-test_circ0_aabb0(vec2 *circp, int16_t r, RECT *aabb, vec2 *r_delta)
+test_circ0_aabb0(vec2 *circp, int32_t r, RECT *aabb, vec2 *r_delta)
 {
     vec2 closest = closest_point_aabb0(aabb, circp);
-    int16_t sqdist = sqdist0(circp, &closest, r_delta);
+    int32_t sqdist = sqdist0(circp, &closest, r_delta);
     uint8_t collided = sqdist <= (r * r);
     return collided;
 }
@@ -57,7 +57,7 @@ test_circ0_aabb0(vec2 *circp, int16_t r, RECT *aabb, vec2 *r_delta)
 //    - Calcular compensação de coordenadas relativo ao canto sup. esq.;
 //      da caixa.
 uint8_t
-collision_ball_box(vec2 *ballpos, int16_t r,
+collision_ball_box(vec2 *ballpos, int32_t r,
                    RECT *box,
                    vec2 *r_mov, vec2 *r_pos)
 {
@@ -80,24 +80,20 @@ collision_ball_box(vec2 *ballpos, int16_t r,
 
     if(delta.vx > 0) {
         // Ball is at left of box
-        /* r_pos->vx = ballpos->vx - (r - delta.vx); */
         r_pos->vx = box->x - r;
         r_mov->vx = -1;
     } else if(delta.vx < 0) {
         // Ball is at right of box
-        /* r_pos->vx = ballpos->vx + (r + delta.vx); */
         r_pos->vx = box->x + box->w + r;
         r_mov->vx = 1;
     }
 
     if(delta.vy > 0) {
         // Ball is at top of box
-        /* r_pos->vy = ballpos->vy - (r - delta.vy); */
         r_pos->vy = box->y - r;
         r_mov->vy = -1;
     } else if(delta.vy < 0) {
         // Ball is at bottom of box
-        /* r_pos->vy = ballpos->vy + (r + delta.vy); */
         r_pos->vy = box->y + box->h + r;
         r_mov->vy = 1;
     }
