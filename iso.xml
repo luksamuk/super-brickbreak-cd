@@ -4,8 +4,8 @@
     <identifiers
 	system		= "PLAYSTATION"
 	application	= "PLAYSTATION"
-	volume		= "SCUS-00001"
-	volume_set	= "SCUS-00001"
+	volume		= "SLUS-00005"
+	volume_set	= "SLUS-00005"
 	publisher	= "luksamuk"
 	data_preparer	= "PSN00BSDK ${PSN00BSDK_VERSION}"
 	copyright	= "COPYLEFT" />

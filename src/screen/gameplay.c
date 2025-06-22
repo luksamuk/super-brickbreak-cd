@@ -21,7 +21,8 @@
 #define PADDLE_BASE_SPEED   4
 #define PADDLE_ACCEL_SPEED  8
 
-#define BALL_RADIUS 5
+#define BALL_RADIUS 3
+#define BALL_TEXTURE_RADIUS 5
 #define BALL_SPEED  4
 
 #define PADDLE_REBOUND_MIN_ANGLE    0x155 // approx. 30°
@@ -32,12 +33,10 @@
 #define BLOCK_HEIGHT  8
 
 #define MAX_BLOCKS_WIDTH  20
-#define MAX_BLOCKS_HEIGHT 10
+#define MAX_BLOCKS_HEIGHT 18
 #define MAX_BLOCKS (MAX_BLOCKS_WIDTH * MAX_BLOCKS_HEIGHT)
 
 uint8_t level_layout[MAX_BLOCKS] = {
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,
     0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,
     1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,
@@ -45,7 +44,15 @@ uint8_t level_layout[MAX_BLOCKS] = {
     1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,
     0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,
     0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,
-    1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1
+    1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,
+    1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,
+    0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,
+    0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,
+    1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,
+    1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,
+    1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
 
@@ -283,10 +290,10 @@ _draw_ball(int16_t ball_x, int16_t ball_y)
     setTPage(poly, 1, 0, 320, 0);
     setClut(poly, 0, 480);
     setUV4(poly,
-           0, 0,
-           10, 0,
-           0, 10,
-           10, 10);
+           0,                        0,
+           BALL_TEXTURE_RADIUS << 1, 0,
+           0,                        BALL_TEXTURE_RADIUS << 1,
+           BALL_TEXTURE_RADIUS << 1, BALL_TEXTURE_RADIUS << 1);
     sort_prim(poly, 2);
     increment_prim(sizeof(POLY_FT4));
 }
