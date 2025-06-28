@@ -295,13 +295,13 @@ screen_gameplay_update(void *d)
                 // Horizontal collision
                 if((r_mov.vx != 0) && (SIGNUM(data->ball_vel[0]) != SIGNUM(r_mov.vx))) {
                     data->ball_vel[0] *= -1;
-                    data->ball_pos[0] = r_pos.vx << 12;
+                    //data->ball_pos[0] = r_pos.vx << 12;
                 }
 
                 // Vertical collision
                 if((r_mov.vy != 0) && (SIGNUM(data->ball_vel[1]) != SIGNUM(r_mov.vy))) {
                     data->ball_vel[1] *= -1;
-                    data->ball_pos[1] = r_pos.vy << 12;
+                    //data->ball_pos[1] = r_pos.vy << 12;
                 }
 
                 // Calculate score with multiplier
