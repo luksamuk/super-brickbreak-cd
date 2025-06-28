@@ -15,15 +15,26 @@
 // Ball texture: 320x0
 // Ball CLUT: 0x480
 
+// Paddle is 8bpp
+// Paddle texture: 448x0
+// Paddle CLUT 0x481
+
+// Score:
+// 10 digits
+// Block base score: 10
+// Level beaten score: 500
+
 #define PADDLE_WIDTH  50
-#define PADDLE_HEIGHT 10
+#define PADDLE_HEIGHT 5
+#define PADDLE_MIN_WIDTH 30
+#define PADDLE_MAX_WIDTH 200
 
 #define PADDLE_BASE_SPEED   4
 #define PADDLE_ACCEL_SPEED  8
 
 #define BALL_RADIUS 3
-#define BALL_TEXTURE_RADIUS 5
-#define BALL_SPEED  4
+#define BALL_TEXTURE_RADIUS      5
+#define BALL_SPEED          0x3800
 
 #define PADDLE_REBOUND_MIN_ANGLE    0x155 // approx. 30°
 #define PADDLE_REBOUND_RANGE_ANGLE  0x555 // approx. 120°
@@ -69,8 +80,10 @@ typedef struct {
     int32_t ball_vel[2];    // fixpoint
     int32_t paddle_pos[2];
     int32_t ball_init_angle; // fixpoint
+    int16_t paddle_width;
     uint8_t ball_state;
     uint8_t player_lives;
+    uint32_t player_score;
 
     block_state blocks[MAX_BLOCKS];
 } gameplay_data;
@@ -84,7 +97,7 @@ _respawn_ball(gameplay_data *data)
     data->ball_vel[0] = 0;
     data->ball_vel[1] = 0;
     data->ball_state = 0;
-    data->ball_pos[0] = (data->paddle_pos[0] + (PADDLE_WIDTH >> 1)) << 12;
+    data->ball_pos[0] = (data->paddle_pos[0] + (data->paddle_width >> 1)) << 12;
     data->ball_pos[1] = (data->paddle_pos[1] - PADDLE_HEIGHT) << 12;
 }
 
@@ -107,7 +120,9 @@ screen_gameplay_load()
     srand(get_global_frames());
     gameplay_data *data = screen_alloc(sizeof(gameplay_data));
     data->paddle_pos[0] = CENTERX - (PADDLE_WIDTH >> 1);
-    data->paddle_pos[1] = SCREEN_YRES - 30 - PADDLE_HEIGHT;
+    data->paddle_pos[1] = SCREEN_YRES - 25 - PADDLE_HEIGHT;
+    data->paddle_width = PADDLE_WIDTH;
+    data->player_score = 0;
 
     _reset_level(data->blocks);
     _respawn_ball(data);
@@ -120,15 +135,22 @@ screen_gameplay_load()
         free(file);
     }
 
+    file = file_read("\\OBJECTS.TIM;1", &file_length);
+    if(file) {
+        load_texture(file, &tim);
+        free(file);
+    }
+
     data->player_lives = 5;
 
-    cdda_play_track(1);
+    /* cdda_play_track(1); */
 }
 
 void
 screen_gameplay_unload(void *d)
 {
     gameplay_data *data = (gameplay_data *)d;
+    (void)(data);
     screen_free();
     cdda_stop();
 }
@@ -149,19 +171,19 @@ screen_gameplay_update(void *d)
 
     if(data->paddle_pos[0] < 0)
         data->paddle_pos[0] = 0;
-    else if(data->paddle_pos[0] > SCREEN_XRES - PADDLE_WIDTH)
-        data->paddle_pos[0] = SCREEN_XRES - PADDLE_WIDTH;
+    else if(data->paddle_pos[0] > SCREEN_XRES - data->paddle_width)
+        data->paddle_pos[0] = SCREEN_XRES - data->paddle_width;
 
     // Ball movement
     if(!data->ball_state) {
         data->ball_vel[0] = 0;
         data->ball_vel[1] = 0;
-        data->ball_pos[0] = (data->paddle_pos[0] + (PADDLE_WIDTH >> 1)) << 12;
+        data->ball_pos[0] = (data->paddle_pos[0] + (data->paddle_width >> 1)) << 12;
         data->ball_pos[1] = (data->paddle_pos[1] - PADDLE_HEIGHT) << 12;
 
         if(pad_pressed(PAD_CROSS)) {
-            data->ball_vel[0] = ((BALL_SPEED << 12) * rcos(data->ball_init_angle)) >> 12;
-            data->ball_vel[1] = -(((BALL_SPEED << 12) * rsin(data->ball_init_angle)) >> 12);
+            data->ball_vel[0] = (BALL_SPEED * rcos(data->ball_init_angle)) >> 12;
+            data->ball_vel[1] = -((BALL_SPEED * rsin(data->ball_init_angle)) >> 12);
             data->ball_state = 1;
         }
     } else {
@@ -208,7 +230,7 @@ screen_gameplay_update(void *d)
             int32_t paddle_col_left =
                 (data->paddle_pos[0] << 12) - ball_hradius;
             int32_t paddle_col_right =
-                (data->paddle_pos[0] << 12) + (PADDLE_WIDTH << 12) + ball_hradius;
+                (data->paddle_pos[0] << 12) + (data->paddle_width << 12) + ball_hradius;
 
             if((data->ball_pos[0] >= paddle_col_left) && (data->ball_pos[0] <= paddle_col_right)) {
                 data->ball_pos[1] = (data->paddle_pos[1] << 12) - (BALL_RADIUS << 12);
@@ -225,8 +247,8 @@ screen_gameplay_update(void *d)
                 uint32_t rebound_angle =
                     PADDLE_REBOUND_MIN_ANGLE + ((p * PADDLE_REBOUND_RANGE_ANGLE) >> 12);
 
-                data->ball_vel[0] = ((BALL_SPEED << 12) * rcos(rebound_angle)) >> 12;
-                data->ball_vel[1] = -(((BALL_SPEED << 12) * rsin(rebound_angle)) >> 12);
+                data->ball_vel[0] = (BALL_SPEED * rcos(rebound_angle)) >> 12;
+                data->ball_vel[1] = -((BALL_SPEED * rsin(rebound_angle)) >> 12);
             }
         }
 
@@ -267,9 +289,25 @@ screen_gameplay_update(void *d)
                     data->ball_vel[1] *= -1;
                     data->ball_pos[1] = r_pos.vy << 12;
                 }
+
+                break;
             }
         }
     }
+
+    // Changle paddle size
+    if(pad_pressed(PAD_L1)) {
+        data->paddle_width -= 10;
+    }
+    else if(pad_pressed(PAD_R1)) {
+        data->paddle_width += 10;
+    }
+    data->paddle_width =
+        (data->paddle_width < PADDLE_MIN_WIDTH)
+        ? PADDLE_MIN_WIDTH
+        : ((data->paddle_width > PADDLE_MAX_WIDTH)
+           ? PADDLE_MAX_WIDTH
+           : data->paddle_width);
 }
 
 void
@@ -361,18 +399,51 @@ _draw_block(block_state *s, int16_t vx, int16_t vy)
 }
 
 void
+_draw_paddle_part(int16_t vx, int16_t vy, uint8_t type, uint8_t flipx)
+{
+    POLY_FT4 *poly = (POLY_FT4 *)get_next_prim();
+    increment_prim(sizeof(POLY_FT4));
+    setPolyFT4(poly);
+    setXYWH(poly, vx, vy, 10, 5);
+    setRGB0(poly, 128, 128, 128);
+    if(!flipx) {
+        setUVWH(poly, type ? 10 : 0, 0, 10, 5);
+    } else {
+        uint8_t u0 = type ? 10 : 0;
+        uint8_t v0 = 0;
+        setUV4(poly,
+               u0 + 9, v0,
+               u0,      v0,
+               u0 + 9, v0 + 5,
+               u0,      v0 + 5);
+    }
+    setTPage(poly, 1, 0, 448, 0);
+    setClut(poly, 0, 481);
+    sort_prim(poly, 1);
+}
+
+void
+_draw_paddle(int16_t vx, int16_t vy, int16_t width)
+{
+    // Determine the amount of parts for the paddle
+    int16_t num_parts = (width / 10) - 2;
+
+    // Draw borders
+    _draw_paddle_part(vx, vy, 1, 0);              // Left border
+    _draw_paddle_part(vx + width - 10, vy, 1, 1); // Right border
+    for(int16_t i = 0; i < num_parts; i++) {
+        int16_t xpos = (vx + 10) + (10 * i);
+        _draw_paddle_part(xpos, vy, 0, 0);
+    }
+}
+
+void
 screen_gameplay_draw(void *d)
 {
     gameplay_data *data = (gameplay_data *)d;
 
     // Draw paddle
-    TILE *tile = (TILE *)get_next_prim();
-    setTile(tile);
-    setRGB0(tile, 0xff, 0xff, 0xff);
-    setXY0(tile, data->paddle_pos[0], data->paddle_pos[1]);
-    setWH(tile, PADDLE_WIDTH, PADDLE_HEIGHT);
-    sort_prim(tile, 1);
-    increment_prim(sizeof(TILE));
+    _draw_paddle(data->paddle_pos[0], data->paddle_pos[1], data->paddle_width);
 
     // Draw ball
     _draw_ball(data->ball_pos[0] >> 12, data->ball_pos[1] >> 12);
@@ -385,7 +456,7 @@ screen_gameplay_draw(void *d)
         _draw_block(s, x << 4, y << 3);
     }
 
-    draw_text(10, SCREEN_YRES - 20, 0, "Level: Test");
+    draw_text(10, SCREEN_YRES - 18, 0, "Level: Test");
 
     // Draw lives
     int16_t lives_x = SCREEN_XRES - BALL_RADIUS - 5;
