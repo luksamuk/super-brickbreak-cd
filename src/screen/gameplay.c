@@ -23,6 +23,11 @@
 // 10 digits
 // Block base score: 10
 // Level beaten score: 500
+#define SCORE_BLOCK            10
+#define SCORE_LEVEL_BEATEN    500
+#define SCORE_MAX_MULTIPLER  0x10
+
+#define PLAYER_MAX_LIVES 5
 
 #define PADDLE_WIDTH  50
 #define PADDLE_HEIGHT 5
@@ -41,12 +46,13 @@
 // PADDLE_REBOUND_MIN_ANGLE + (P * PADDLE_REBOUND_RANGE_ANGLE)
 
 #define BLOCK_WIDTH   16
-#define BLOCK_HEIGHT  8
+#define BLOCK_HEIGHT   8
 
 #define MAX_BLOCKS_WIDTH  20
 #define MAX_BLOCKS_HEIGHT 18
 #define MAX_BLOCKS (MAX_BLOCKS_WIDTH * MAX_BLOCKS_HEIGHT)
 
+// Max level name size: 12
 uint8_t level_layout[MAX_BLOCKS] = {
     0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,
     0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,
@@ -59,9 +65,9 @@ uint8_t level_layout[MAX_BLOCKS] = {
     1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,
     0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,
     0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,
-    1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,
-    1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,
-    1,0,0,0,0,1,1,1,1,1,0,0,0,0,1,1,1,1,1,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
@@ -84,8 +90,11 @@ typedef struct {
     uint8_t ball_state;
     uint8_t player_lives;
     uint32_t player_score;
+    uint8_t  player_score_multiplier;
 
     block_state blocks[MAX_BLOCKS];
+
+    char txt[255];
 } gameplay_data;
 
 
@@ -123,6 +132,7 @@ screen_gameplay_load()
     data->paddle_pos[1] = SCREEN_YRES - 25 - PADDLE_HEIGHT;
     data->paddle_width = PADDLE_WIDTH;
     data->player_score = 0;
+    data->player_score_multiplier = 0;
 
     _reset_level(data->blocks);
     _respawn_ball(data);
@@ -141,7 +151,7 @@ screen_gameplay_load()
         free(file);
     }
 
-    data->player_lives = 5;
+    data->player_lives = PLAYER_MAX_LIVES;
 
     /* cdda_play_track(1); */
 }
@@ -194,6 +204,7 @@ screen_gameplay_update(void *d)
         if(pad_pressed(PAD_SELECT)) {
             _respawn_ball(data);
             _reset_level(data->blocks);
+            data->paddle_width = PADDLE_WIDTH;
         }
 
         // Boundary collision
@@ -206,6 +217,7 @@ screen_gameplay_update(void *d)
             // Respawn ball, and lose a life
             _respawn_ball(data);
             if(data->player_lives > 0) data->player_lives--;
+            data->player_score_multiplier = 0;
         }
 
         int32_t ball_left = data->ball_pos[0] - (BALL_RADIUS << 12);
@@ -249,6 +261,8 @@ screen_gameplay_update(void *d)
 
                 data->ball_vel[0] = (BALL_SPEED * rcos(rebound_angle)) >> 12;
                 data->ball_vel[1] = -((BALL_SPEED * rsin(rebound_angle)) >> 12);
+
+                data->player_score_multiplier = 0;
             }
         }
 
@@ -290,6 +304,16 @@ screen_gameplay_update(void *d)
                     data->ball_pos[1] = r_pos.vy << 12;
                 }
 
+                // Calculate score with multiplier
+                if(data->player_score_multiplier > 1) {
+                    data->player_score += SCORE_BLOCK * data->player_score_multiplier;
+                } else data->player_score += SCORE_BLOCK;
+
+                if(data->player_score_multiplier < SCORE_MAX_MULTIPLER)
+                    data->player_score_multiplier =
+                        (!data->player_score_multiplier)
+                        ? 1
+                        : (data->player_score_multiplier << 1);
                 break;
             }
         }
@@ -456,10 +480,23 @@ screen_gameplay_draw(void *d)
         _draw_block(s, x << 4, y << 3);
     }
 
-    draw_text(10, SCREEN_YRES - 18, 0, "Level: Test");
+    draw_text(10, SCREEN_YRES - 18, 0, "AAAAAAAAAAAA");
+
+    snprintf(data->txt, 255, "%010u", data->player_score);
+    draw_text(CENTERX - 40, SCREEN_YRES - 18, 0, data->txt);
+
+    int16_t lives_x = SCREEN_XRES - BALL_RADIUS - 5;
+
+    if(data->player_score_multiplier > 1) {
+        snprintf(data->txt, 255, "x%d", data->player_score_multiplier);
+        draw_text(
+            (lives_x - ((BALL_RADIUS << 1) + 2) * PLAYER_MAX_LIVES) - (strlen(data->txt) * 8),
+            SCREEN_YRES - 18,
+            0,
+            data->txt);
+    }
 
     // Draw lives
-    int16_t lives_x = SCREEN_XRES - BALL_RADIUS - 5;
     for(uint8_t i = 0; i < data->player_lives; i++) {
         _draw_ball(lives_x, SCREEN_YRES - 15);
         lives_x -= (BALL_RADIUS << 1) + 2;
